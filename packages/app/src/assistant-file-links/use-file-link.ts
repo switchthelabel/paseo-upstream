@@ -4,13 +4,12 @@ import { useTranslation } from "react-i18next";
 import { useStableEvent } from "@/hooks/use-stable-event";
 import type { OpenFileDisposition } from "@/workspace/file-open";
 import { openExternalUrl } from "@/utils/open-external-url";
-import { router } from "expo-router";
 import {
   parseHostWorkspaceRouteFromPathname,
-  buildHostWorkspaceRoute,
   parseHostAgentRouteFromPathname,
-  buildHostAgentDetailRoute,
 } from "@/utils/host-routes";
+import { navigateToWorkspace } from "@/stores/navigation-active-workspace-store";
+import { navigateToAgent } from "@/utils/navigate-to-agent";
 import { formatFileLinkTooltipPath } from "./tooltip-path";
 import type { InlinePathTarget } from "./parse";
 import {
@@ -329,8 +328,10 @@ async function dispatchFileTarget(input: {
  * Route the app's own `paseo://` scheme in-app instead of handing it to
  * `openExternalUrl`, whose allowlist is http(s) only and silently drops every
  * other scheme. A tapped `paseo://h/<server>/workspace/<id>` link then opens
- * the workspace inside the app the user is already in. Returns true when the
- * link was a known host route and navigation was issued.
+ * the workspace inside the app the user is already in, through the same
+ * `navigateToWorkspace`/`navigateToAgent` helpers every other in-app entry
+ * point uses (attention-agent focus, tab placement, last-workspace memory).
+ * Returns true when the link was a known host route and navigation was issued.
  */
 function tryNavigateInternalPaseoLink(url: string): boolean {
   let parsed: URL;
@@ -347,12 +348,12 @@ function tryNavigateInternalPaseoLink(url: string): boolean {
   const pathname = `/${parsed.hostname}${parsed.pathname}`;
   const workspace = parseHostWorkspaceRouteFromPathname(pathname);
   if (workspace) {
-    router.navigate(buildHostWorkspaceRoute(workspace.serverId, workspace.workspaceId));
+    navigateToWorkspace({ serverId: workspace.serverId, workspaceId: workspace.workspaceId });
     return true;
   }
   const agent = parseHostAgentRouteFromPathname(pathname);
   if (agent) {
-    router.navigate(buildHostAgentDetailRoute(agent.serverId, agent.agentId));
+    navigateToAgent({ serverId: agent.serverId, agentId: agent.agentId });
     return true;
   }
   return false;
